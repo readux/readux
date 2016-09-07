@@ -1,0 +1,9 @@
+target/**/*
+out/**/*
+.nrepl*
+project.clj
+
+examples/*/target/**/*
+examples/*/out/**/*
+examples/*/.nrepl*
+examples/*/project.clj

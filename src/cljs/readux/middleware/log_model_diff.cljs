@@ -7,6 +7,10 @@
   [dispatch next model action data]
   (rdu/with-console-group
     (str "Action['" (name action) "']")
+    (when data
+      (print "---[DATA]---")
+      (cljs.pprint/pprint data)
+      (println (str "---[/DATA]---")))
     (let [new-model (next model action data)
           [removed added _] (diff model new-model)]
       (rdu/with-console-group

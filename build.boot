@@ -11,7 +11,12 @@
                  [weasel "0.7.0" :scope "test"]
                  [org.clojure/tools.nrepl "0.2.12" :scope "test"]]
   :project 'readux
-  :version "0.1.2-SNAPSHOT")
+  :version "0.1.3-SNAPSHOT")
+
+(require '[adzerk.boot-cljs :refer [cljs]]
+         '[pandeiro.boot-http :refer [serve]]
+         '[adzerk.boot-reload :refer [reload]]
+         '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]])
 
 (task-options!
   pom {:project (get-env :project)
@@ -21,13 +26,6 @@
        :description "clojureScript library for managing state in reagent-based SPA's. Inspired by Redux"}
   jar {:main 'readux.core
        :file (format "%s-%s-standalone.jar" (get-env :project) (get-env :version))})
-
-(require '[adzerk.boot-cljs :refer [cljs]]
-         '[pandeiro.boot-http :refer [serve]]
-         '[adzerk.boot-reload :refer [reload]]
-         '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]])
-
-
 
 (deftask dev
   "Launch immediate feedback development environment"

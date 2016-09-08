@@ -25,9 +25,9 @@
   (-> @store :queries))
 
 (defn dispatch-core
-  [store action args]
+  [store action data]
   (let [model* (store->model* store)
-        result ((store->reducer store) @model* action args)]
+        result ((store->reducer store) @model* action data)]
     (assert (some? result) "Root reducer returned 'nil' - result of reduce *must* be some new (non-nil) state!")
     (reset! model* result)
     nil))

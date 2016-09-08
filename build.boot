@@ -18,7 +18,7 @@
        :version (get-env :version)
        :license {"MIT" "https://mit-license.org/"}
        :url "https://readux.github.io"
-       :description "ClojureScript library for managing state in reagent-based SPA's. Inspired by Redux"}
+       :description "clojureScript library for managing state in reagent-based SPA's. Inspired by Redux"}
   jar {:main 'readux.core
        :file (format "%s-%s-standalone.jar" (get-env :project) (get-env :version))})
 

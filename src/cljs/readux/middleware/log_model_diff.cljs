@@ -4,10 +4,10 @@
   (:require-macros [readux.utils :as rdu]))
 
 (defn log-model-diff
-  [dispatch next model action args]
+  [dispatch next model action data]
   (rdu/with-console-group
     (str "Action['" (name action) "']")
-    (let [new-model (apply next model action args)
+    (let [new-model (next model action data)
           [removed added _] (diff model new-model)]
       (rdu/with-console-group
         "Added"

@@ -76,13 +76,18 @@
            :queries (r/atom {})
            :dispatch dispatch-core})))
 
+(defn- mw-dispatcher
+  [store]
+  (fn
+    ([action] ((:dispatch @store) store action nil))
+    ([action data]
+      ((:dispatch @store) store action data))))
+
 (defn apply-mw
   [& middleware]
   (fn do-apply-mw
     [store]
-    (let [dispatch-fn (fn do-dispatch
-                        [action & args]
-                        ((:dispatch @store) store action args))
+    (let [dispatch-fn (mw-dispatcher store)
           reducer (store->reducer store)]
       (->> middleware
            reverse

@@ -15,8 +15,9 @@
 ;; Interface
 
 (defn dispatch
-  [store action & args]
-  ((@store :dispatch) store action args))
+  ([store action] (dispatch store action nil))
+  ([store action data]
+   ((@store :dispatch) store action data)))
 
 (defn store
   ([reducer] (store reducer identity))
@@ -27,9 +28,9 @@
 
 (defn composite-reducer
   [reducer-map]
-  (fn [model action & args]
+  (fn [model action data]
     (->> (for [[path reducer] reducer-map]
-           [path (apply reducer (get model path) action args)])
+           [path (reducer (get model path) action data)])
          (into {}))))
 
 (defn query-reg!

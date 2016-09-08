@@ -4,41 +4,6 @@
 
 (def ^:private store-nil-msg "store argument was 'nil'")
 
-
-;; ((apply comp (mapv #(partial % 1 2) [foo foo2])) 3)
-;; => 9
-
-#_(defn mock-dispatch
-  [model action args]
-  (println (str "DISPATCH(" action "," args ")")))
-
-#_(defn mock-reducer
-  [model action args]
-  (println "mock reducer hit")
-  (update model :val inc))
-
-#_(defn testmw1
-  [dispatch next model action args]
-  (println "testmw1 pre")
-  (let [r (next model action args)]
-    (println "testmw1 post")
-    r))
-
-#_(defn testmw2
-  [dispatch next model action args]
-  (println "testmw2 pre")
-  (let [r (next model action args)]
-    (dispatch action args)
-    (println "testmw2 post")
-    r))
-
-#_(defn apply-mw
-  [reducer & mw-fns]
-  (->> mw-fns
-       reverse
-       (mapv #(partial % mock-dispatch))
-       (reduce (fn [next mw] (partial mw next)) mock-reducer)))
-
 (defn store->model*
   [store]
   (assert (some? store) store-nil-msg)

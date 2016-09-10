@@ -51,7 +51,9 @@
     use this in conjunction with 'checkout -d <dir>' on a dependent project"
     []
     (println "watching for changes & rebuilding local jar as needed.")
-    (println "use -d <path-to-this-project> to rebuild dependent projects in response")
+    (println "Add: ")
+    (println (str "    :checkouts '[[" (get-env :project) " \"" (get-env :version) "\"]]"))
+    (println "To any dependent projects.")
     (comp (watch)
           (local)))
 

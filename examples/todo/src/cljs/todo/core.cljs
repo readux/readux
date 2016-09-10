@@ -2,6 +2,7 @@
   (:require [reagent.core :as r]
             [reagent.ratom :refer [reaction]]
             [readux.core :as rdc :include-macros true]
+            [readux.store :as rds]
             [readux.middleware.log-model-diff :refer [log-model-diff]]))
 
 (enable-console-print!)
@@ -14,38 +15,35 @@
     {:todos        []
      :next-todo-id 0}
     {:ADD-TODO
-     (let [text (first data)
+     (let [text data
            next-id (:next-todo-id model)]
-       (if (not-empty text)
-         (-> model
-             (update :todos
-                     #(conj %1 {:id        next-id
-                                :text      text
-                                :completed false}))
-             (update :next-todo-id inc))
-         model))
+          (if (not-empty text)
+            (-> model
+                (update :todos
+                        #(conj %1 {:id        next-id
+                                   :text      text
+                                   :completed false}))
+                (update :next-todo-id inc))
+            model))
      :TOGGLE-TODO
-     (let [todo-id (first data)]
-       (->> #(map (fn [todo]
-                    (if (= (:id todo) todo-id)
-                      (update todo :completed not)
-                      todo)) %1)
-            (update model :todos)))}))
+     (let [todo-id data]
+          (->> #(map (fn [todo]
+                         (if (= (:id todo) todo-id)
+                           (update todo :completed not)
+                           todo)) %1)
+               (update model :todos)))}))
 
 (def filter-reducer
   (rdc/reducer-fn
     [model action data]
     "SHOW_ALL"
-    {:SET-VISIBILITY-FILTER
-     (first data)}))
+    {:SET-VISIBILITY-FILTER data}))
 
 (def app-reducer
-    (->
-      (rdc/composite-reducer {:todos  todos-reducer
-                              :filter filter-reducer})
-      log-model-diff))
+  (rdc/composite-reducer {:todos  todos-reducer
+                          :filter filter-reducer}))
 
-(defonce store (rdc/store app-reducer))
+(defonce store (rdc/store app-reducer (rds/apply-mw log-model-diff)))
 
 (defn prevent-default
   [cb]

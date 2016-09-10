@@ -39,6 +39,11 @@
   (-> (rs/store->queries store)
       (swap! update query-id query-reg!* query-fn query-id)))
 
+(defn queries-reg!
+  [store query-map]
+  (doseq [[id qfn] query-map]
+    (query-reg! store id qfn)))
+
 (defn query
   [store [query-id :as query-rq]]
   (assert (keyword? query-id))

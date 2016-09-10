@@ -18,17 +18,18 @@
   :project 'readux-todo-example
   :version "0.1.1-SNAPSHOT")
 
+(require '[adzerk.boot-cljs :refer [cljs]]
+         '[pandeiro.boot-http :refer [serve]]
+         '[adzerk.boot-reload :refer [reload]]
+         '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]])
+
 (task-options!
   pom {:project (get-env :project)
        :version (get-env :version)
        :license {"MIT" "https://mit-license.org/"}
        :url "https://readux.github.io"
-       :description "Example TODO application using readux"})
-
-(require '[adzerk.boot-cljs :refer [cljs]]
-         '[pandeiro.boot-http :refer [serve]]
-         '[adzerk.boot-reload :refer [reload]]
-         '[adzerk.boot-cljs-repl :refer [cljs-repl start-repl]])
+       :description "Example TODO application using readux"}
+  cljs-repl {:nrepl-opts {:port 9000}})
 
 (deftask dev
   "Launch immediate feedback development environment"

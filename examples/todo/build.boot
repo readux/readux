@@ -14,7 +14,7 @@
                  [weasel "0.7.0" :scope "test"]
                  [org.clojure/tools.nrepl "0.2.12" :scope "test"]]
 
-  :checkouts '[[readux "0.1.3-SNAPSHOT"]]
+  :checkouts '[[readux "0.1.4-SNAPSHOT"]]
   :project 'readux-todo-example
   :version "0.1.1-SNAPSHOT")
 

@@ -4,6 +4,10 @@
 
 (def ^:private store-nil-msg "store argument was 'nil'")
 
+(defn fsa-action?
+  [action]
+  (and (map? action) ((complement nil?) (:type action))))
+
 (defn store->model*
   [store]
   (assert (some? store) store-nil-msg)
@@ -25,9 +29,9 @@
   (-> @store :queries))
 
 (defn dispatch-core
-  [store action data]
+  [store action]
   (let [model* (store->model* store)
-        result ((store->reducer store) @model* action data)]
+        result ((store->reducer store) @model* action)]
     (assert (some? result) "Root reducer returned 'nil' - result of reduce *must* be some new (non-nil) state!")
     (reset! model* result)
     nil))
@@ -44,9 +48,15 @@
 (defn- mw-dispatcher
   [store]
   (fn
-    ([action] ((:dispatch @store) store action nil))
-    ([action data]
-      ((:dispatch @store) store action data))))
+    ([action]
+     (assert
+       (fsa-action? action)
+       "actions must be FSA-compliant (https://github.com/acdlite/flux-standard-action)")
+     ((:dispatch @store) store action))
+    ([type payload]
+     (assert
+       (keyword? type) "expect action type to be a keyword value")
+     ((:dispatch @store) {:type type :payload payload}))))
 
 (defn apply-mw
   [& middleware]

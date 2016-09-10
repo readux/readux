@@ -1,10 +1,9 @@
 (ns readux.core
   (:require [reagent.core :as r]
-            [readux.store :as rs])
+            [readux.store :as rds])
   (:require-macros [reagent.ratom :refer [reaction]]))
 
 ;; Internal
-
 (defn- query-reg!*
   [existing-fn new-fn query-id]
   (when-not (nil? existing-fn)
@@ -13,17 +12,21 @@
   new-fn)
 
 ;; Interface
-
 (defn dispatch
-  ([store action] (dispatch store action nil))
-  ([store action data]
-   ((@store :dispatch) store action data)))
+  ([store action]
+   (assert
+     (rds/fsa-action? action)
+     "actions must be FSA-compliant (https://github.com/acdlite/flux-standard-action)")
+   ((@store :dispatch) store action))
+  ([store type payload]
+   (assert (keyword? type) "Expect action type to be a keyword value")
+   (dispatch store {:type type :payload payload})))
 
 (defn store
   ([reducer] (store reducer identity))
   ([reducer enhancer]
-   (let [store (enhancer (rs/->store* reducer))]
-     (dispatch store :READUX/INIT)
+   (let [store (enhancer (rds/->store* reducer))]
+     (dispatch store {:type :READUX/INIT})
      store)))
 
 (defn composite-reducer
@@ -36,7 +39,7 @@
 (defn query-reg!
   [store query-id query-fn]
   (assert (keyword? query-id))
-  (-> (rs/store->queries store)
+  (-> (rds/store->queries store)
       (swap! update query-id query-reg!* query-fn query-id)))
 
 (defn queries-reg!
@@ -47,6 +50,6 @@
 (defn query
   [store [query-id :as query-rq]]
   (assert (keyword? query-id))
-  (let [query-fn (-> store rs/store->queries deref (get query-id))]
+  (let [query-fn (-> store rds/store->queries deref (get query-id))]
     (assert (some? query-fn) (str "Query '" query-id "' not registered with store"))
-    (query-fn (rs/store->model store) query-rq)))
+    (query-fn (rds/store->model store) query-rq)))

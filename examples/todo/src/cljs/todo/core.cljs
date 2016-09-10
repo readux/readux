@@ -11,11 +11,11 @@
 ;; --------
 (def todos-reducer
   (rdc/reducer-fn
-    [model action data]
+    [model action]
     {:todos        []
      :next-todo-id 0}
     {:ADD-TODO
-     (let [text data
+     (let [text (:payload action)
            next-id (:next-todo-id model)]
           (if (not-empty text)
             (-> model
@@ -26,7 +26,7 @@
                 (update :next-todo-id inc))
             model))
      :TOGGLE-TODO
-     (let [todo-id data]
+     (let [todo-id (:payload action)]
           (->> #(map (fn [todo]
                          (if (= (:id todo) todo-id)
                            (update todo :completed not)
@@ -35,9 +35,9 @@
 
 (def filter-reducer
   (rdc/reducer-fn
-    [model action data]
+    [model action]
     "SHOW_ALL"
-    {:SET-VISIBILITY-FILTER data}))
+    {:SET-VISIBILITY-FILTER (:payload action)}))
 
 (def app-reducer
   (rdc/composite-reducer {:todos  todos-reducer

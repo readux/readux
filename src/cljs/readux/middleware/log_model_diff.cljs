@@ -20,19 +20,20 @@
   (.apply (.-error js/console) js/console (into-array args)))
 
 (defn log-model-diff
-  [dispatch next model action data]
-  (rdu/with-console-group
-    (str "Action['" (name action) "']")
-    (when data
-      (rdu/with-console-group
-        "Data"
-        (log (ppstr data))))
-    (let [new-model (next model action data)
-          [removed added _] (diff model new-model)]
-      (rdu/with-console-group
-        "Added"
-        (log (ppstr added)))
-      (rdu/with-console-group
-        "Removed"
-        (log (ppstr removed)))
-      new-model)))
+  [dispatch next model action]
+  (let [{:keys [type payload]} action]
+    (rdu/with-console-group
+      (str "Action['" (name type) "']")
+      (when payload
+        (rdu/with-console-group
+          "Data"
+          (log (ppstr payload))))
+      (let [new-model (next model action)
+            [removed added _] (diff model new-model)]
+        (rdu/with-console-group
+          "Added"
+          (log (ppstr added)))
+        (rdu/with-console-group
+          "Removed"
+          (log (ppstr removed)))
+        new-model))))

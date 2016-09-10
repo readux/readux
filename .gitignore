@@ -7,3 +7,4 @@ examples/*/target/**/*
 examples/*/out/**/*
 examples/*/.nrepl*
 examples/*/project.clj
+*.iml

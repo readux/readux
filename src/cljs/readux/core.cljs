@@ -48,8 +48,16 @@
     (query-reg! store id qfn)))
 
 (defn query
-  [store [query-id :as query-rq]]
-  (assert (keyword? query-id))
-  (let [query-fn (-> store rds/store->queries deref (get query-id))]
-    (assert (some? query-fn) (str "Query '" query-id "' not registered with store"))
-    (query-fn (rds/store->model store) query-rq)))
+  ([store query-rq]
+   (query store query-rq nil))
+  ([store [query-id :as query-rq] path]
+   (.warn js/console "! query call")
+   (assert (keyword? query-id) "Query key must always be a keyword")
+   (assert (some? #(% path)) "path must be nil or a vector")
+   (let [query-fn (-> store rds/store->queries deref (get query-id))]
+     (assert (some? query-fn) (str "Query '" query-id "' is not registered with the store."))
+     (-> (if path (do (.warn js/console "QUERY IS CONTEXTUAL")
+                      (reaction (get-in @(rds/store->model store) path))
+                      #_(-> store rds/store->model (get-in path) (reaction)))
+                  (-> store rds/store->model))
+         (query-fn query-rq)))))

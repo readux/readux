@@ -31,9 +31,9 @@
 
 (defn composite-reducer
   [reducer-map]
-  (fn [model action data]
+  (fn [model action]
     (->> (for [[path reducer] reducer-map]
-           [path (reducer (get model path) action data)])
+           [path (reducer (get model path) action)])
          (into {}))))
 
 (defn query-reg!

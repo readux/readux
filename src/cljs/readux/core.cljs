@@ -75,6 +75,27 @@
            [path (reducer (get model path) action)])
          (into {}))))
 
+(defn reducer
+  "Construct reducer from one (or more) action maps.
+
+  Action maps are maps whose key is the action type and whose value is a
+  function taking two arguments, 'model' and 'action', outputting the model
+  which results from processing the action.
+  I.e.
+  ---
+  {:incr (fn [model action] (update model :value inc))
+   :decr (fn [model action] (update model :value dec))}
+  ---
+
+  NOTE: If several action maps are supplied, they are merged in-order."
+  [init & action-maps]
+  (let [action-map (reduce merge action-maps)]
+    (fn [model action]
+      (let [model (or model init)]
+        (if-let [handler (->> action :type (get action-map))]
+          (handler model action)
+          model)))))
+
 (defn query-reg!
   [store query-id query-fn]
   (assert (keyword? query-id))
@@ -99,6 +120,14 @@
          (query-fn query-rq)))))
 
 ;; ---- contextualising components
+(defn with-ctx
+  "Modify (relative) actions in action map to use supplied context ns."
+  [ctx-ns & action-maps]
+  (reduce-kv
+    (fn [m k v]
+      (assoc m (ns-abs ctx-ns k) v))
+    {} (reduce merge action-maps)))
+
 (defn- ctx-dispatch
   "Yield dispatch function supporting contextual dispatches.
 

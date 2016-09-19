@@ -1,10 +1,9 @@
 (ns readux.core)
 
-(defmacro reducer-fn
-  [input init action-map]
-  (let [[model action] input]
-    `(fn [~model ~action]
-       (let [~model (or ~model ~init)]
-         (case (:type ~action)
-           ~@(reduce-kv (fn [vec k v] (conj vec k v)) [] action-map)
-           ~model)))))
+(defmacro defactions
+  [label action-map]
+  (let [am (reduce-kv
+             (fn [m k v]
+               (assoc m k `(fn [~'model ~'action] ~v)))
+             {} action-map)]
+    `(def ~label ~am)))

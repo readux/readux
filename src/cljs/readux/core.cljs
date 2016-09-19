@@ -47,6 +47,28 @@
      store)))
 
 (defn composite-reducer
+  "Creates a reducer from a map of key -> reducer entries.
+
+  Arguments:
+  ----------
+  reducer-map  - a map of reducers. Each key corresponds to the subtree that
+                 the associated reducer function should operate on.
+
+  Example:
+  --------
+  Given a map of reducers like so:
+  {:foo (fn [model action] ...)
+   :bar (fn [model action] ...)}
+
+  .. And a model like so:
+  {:foo 1
+   :bar 100}
+
+  The :foo reducer would get a model of '1' and the :bar reducer
+  a model of '100'.
+
+  Given that each reducer returns a result model, the final model is then
+  re-assembled from the results of the reducers."
   [reducer-map]
   (fn [model action]
     (->> (for [[path reducer] reducer-map]

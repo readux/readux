@@ -3,7 +3,7 @@
             [readux.store :as rds])
   (:require-macros [reagent.ratom :refer [reaction]]))
 
-;; Internal
+;; Helpers
 (defn- query-reg!*
   [existing-fn new-fn query-id]
   (when-not (nil? existing-fn)
@@ -11,7 +11,24 @@
          (.warn js/console)))
   new-fn)
 
-;; Interface
+(defn- ns-abs
+  "Prefixes keyword kw with namespace ns if no ns found.
+
+  Note: ns/kw can be strings or keywords
+
+  Arguments:
+  ns  - namespace, e.g. :foo / 'foo'
+  kw  - keyword, e.g. :bar / 'bar'
+
+  Examples:
+  (ns-abs :baz :foo) => :baz/foo
+  (ns-abs :baz :bar/foo => :bar/foo"
+  [ns kw]
+  (if (-> kw namespace nil?)
+    (keyword (name ns) (name kw))
+    kw))
+
+;; ----
 (defn dispatch
   ([store action]
    (assert
@@ -58,3 +75,77 @@
      (-> (if path (reaction (get-in @(rds/store->model store) path))
                   (-> store rds/store->model))
          (query-fn query-rq)))))
+
+;; ---- contextualising components
+(defn- ctx-dispatch
+  "Yield dispatch function supporting contextual dispatches.
+
+  When (connect)'ing components, a ns and a path into the state tree is
+  supplied, this becomes the component context.
+
+  Dispatches like '(dispatch {:type :foo})', i.e. where the action type key has
+  no ns, are treated as contextual. That is, they are automatically prefixed
+  the context-ns, ensuring other components in other contexts won't accidentally
+  react to this action too.
+
+  NOTE: Dispatches where the type key has a ns, e.g.
+        '(dispatch {:type :some-ns/foo})', are treated as global and pass
+        through unmodified."
+  [store ns]
+  (fn [action]
+    (->> (if (-> action :type namespace nil?)
+           (update action :type #(ns-abs ns %))
+           action)
+         (dispatch store))))
+
+(defn- ctx-query
+  "Yield query function supporting contextual queries.
+
+  When (connect)'ing components, a ns and a path into the state tree is
+  supplied, this becomes the component context.
+
+  Queries like '(query [:counter-value])', i.e. where the query-id key has no
+  ns, are treated as contextual. That is, the query automatically is provided
+  the part of the state-tree which the component context manages.
+
+  This makes queries automatically reusable across different (connect)'ed
+  components.
+
+  NOTE: Queries where the query-id has a NS, e.g.
+        '(query [:some-ns/counter-value])' are treated as operating in the
+        global context - that is, on the entire state tree."
+  [store path]
+  (fn [[query-id :as query-rq]]
+    (if (-> query-id namespace nil?)
+      (query store query-rq path)
+      (query store query-rq))))
+
+(defn connect
+  "Connect a (controller) component to a particular context.
+
+  Controller components take two arguments, 'dispatch' & 'query' for dispatching
+  actions and querying the state tree, respectively.
+  The controller component then prepares the callbacks and reactions to pass
+  along to a presentational component - which in turn only handles layout.
+
+  '(connect)' wires up 'dispatch' and 'query' to work on the supplied store,
+  and in the (optional) context provided.
+
+  A context is a path into the state-tree and a key signifying the namespace of
+  contextual actions/queries.
+
+  In this way, the same controller component can be (connect)'ed multiple times
+  to reuse the component(s) it manages by supplying different contexts.
+
+  Likewise, multiple controller components can interoperate on the same slice
+  of the state tree by (connect)'ing them to the same context."
+  ([component store]
+   (partial component
+            (partial dispatch store)
+            (partial query store)))
+  ([component store ns]
+   (connect component store ns nil))
+  ([component store ns path]
+   (let [dispatch (ctx-dispatch store ns)
+         query (ctx-query store path)]
+     (partial component dispatch query))))

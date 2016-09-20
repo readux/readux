@@ -2,8 +2,7 @@
   (:require [reagent.core :as r]
             [reagent.ratom :refer [reaction]]
             [readux.core :as rdc :include-macros true]
-            [readux.store :as rds]
-            [readux.middleware.log-model-diff :refer [log-model-diff]]))
+            [readux.store :as rds]))
 
 (enable-console-print!)
 
@@ -42,7 +41,7 @@
                todo-actions)
      :filter (rdc/reducer "SHOW_ALL" filter-actions)}))
 
-(defonce store (rdc/store app-reducer (rds/apply-mw log-model-diff)))
+(defonce store (rdc/store app-reducer (rds/apply-mw rds/log-model-diff)))
 
 (defn prevent-default
   [cb]

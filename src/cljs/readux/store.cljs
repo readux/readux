@@ -1,5 +1,7 @@
 (ns readux.store
-  (:require [reagent.core :as r])
+  (:require [clojure.data :refer [diff]]
+            [reagent.core :as r]
+            [readux.utils :as rdu :include-macros true])
   (:require-macros [reagent.ratom :refer [reaction]]))
 
 (def ^:private store-nil-msg "store argument was 'nil'")
@@ -70,3 +72,26 @@
            (reduce (fn [next mw] (partial mw next)) reducer)
            (swap! store assoc :reducer))
       store)))
+
+(defn log-model-diff
+  "Store middleware to log model changes to console."
+  [dispatch next model action]
+  (let [{:keys [type payload]} action
+        action-name (str (when-let [ns (namespace type)]
+                           (str ns "/"))
+                         (name type))]
+    (rdu/with-console-group
+      (str "! Action['"  action-name "']")
+      (when payload
+        (rdu/with-console-group
+          "Data"
+          (rdu/log (rdu/ppstr payload))))
+      (let [new-model (next model action)
+            [removed added _] (diff model new-model)]
+        (rdu/with-console-group
+          "Added"
+          (rdu/log (rdu/ppstr added)))
+        (rdu/with-console-group
+          "Removed"
+          (rdu/log (rdu/ppstr removed)))
+        new-model))))

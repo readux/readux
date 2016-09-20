@@ -43,7 +43,7 @@
   ([reducer] (store reducer identity))
   ([reducer enhancer]
    (let [store (enhancer (rds/->store* reducer))]
-     (dispatch store {:type :READUX/INIT})
+     (dispatch store {:type :readux/init})
      store)))
 
 (defn composite-reducer

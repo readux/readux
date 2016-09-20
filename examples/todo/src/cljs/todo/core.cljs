@@ -9,39 +9,38 @@
 
 ;; Reducers
 ;; --------
-(def todos-reducer
-  (rdc/reducer-fn
-    [model action]
-    {:todos        []
-     :next-todo-id 0}
-    {:ADD-TODO
+(def todo-actions
+  (rdc/actions
+    {:add-todo
      (let [text (:payload action)
            next-id (:next-todo-id model)]
-          (if (not-empty text)
-            (-> model
-                (update :todos
-                        #(conj %1 {:id        next-id
-                                   :text      text
-                                   :completed false}))
-                (update :next-todo-id inc))
-            model))
-     :TOGGLE-TODO
+       (if (not-empty text)
+         (-> model
+             (update :todos
+                     #(conj %1 {:id        next-id
+                                :text      text
+                                :completed false}))
+             (update :next-todo-id inc))
+         model))
+     :toggle-todo
      (let [todo-id (:payload action)]
-          (->> #(map (fn [todo]
-                         (if (= (:id todo) todo-id)
-                           (update todo :completed not)
-                           todo)) %1)
-               (update model :todos)))}))
+       (->> #(map (fn [todo]
+                    (if (= (:id todo) todo-id)
+                      (update todo :completed not)
+                      todo)) %1)
+            (update model :todos)))}))
 
-(def filter-reducer
-  (rdc/reducer-fn
-    [model action]
-    "SHOW_ALL"
-    {:SET-VISIBILITY-FILTER (:payload action)}))
+(def filter-actions
+  (rdc/actions
+    {:set-visibility-filter
+     (:payload action)}))
 
 (def app-reducer
-  (rdc/composite-reducer {:todos  todos-reducer
-                          :filter filter-reducer}))
+  (rdc/composite-reducer
+    {:todos  (rdc/reducer
+               {:todos [] :next-todo-id 0}
+               todo-actions)
+     :filter (rdc/reducer "SHOW_ALL" filter-actions)}))
 
 (defonce store (rdc/store app-reducer (rds/apply-mw log-model-diff)))
 
@@ -108,7 +107,7 @@
 (defn visible-todo-list
   [store]
   (let [todos (rdc/query store [:visible-todos])
-        toggle-todo (fn [id] #(rdc/dispatch store :TOGGLE-TODO id))]
+        toggle-todo (fn [id] #(rdc/dispatch store :toggle-todo id))]
     (fn visible-todo-list-render []
       [todo-list @todos toggle-todo])))
 
@@ -117,7 +116,7 @@
   (let [current-filter (rdc/query store [:current-filter])]
     (fn filter-link-render [{:keys [filter]} label]
       [link label (= filter @current-filter)
-       #(rdc/dispatch store :SET-VISIBILITY-FILTER filter)])))
+       #(rdc/dispatch store :set-visibility-filter filter)])))
 
 (defn add-todo
   [store]
@@ -127,7 +126,7 @@
        [:input {:type "text"
                 :value @input
                 :on-change #(reset! input (-> % .-target .-value))}]
-       [:button {:on-click #(do (rdc/dispatch store :ADD-TODO @input)
+       [:button {:on-click #(do (rdc/dispatch store :add-todo @input)
                                 (reset! input ""))} "Save"]])))
 
 ;; Finally, the app

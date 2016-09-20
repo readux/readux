@@ -5,7 +5,7 @@
   :dependencies '[[org.clojure/clojure "1.8.0"]
                  [org.clojure/clojurescript "1.9.227"]
                  [reagent "0.6.0-rc"]
-                 [readux "0.1.3-SNAPSHOT"]
+                 [readux "0.1.5-SNAPSHOT"]
                  [adzerk/boot-cljs "1.7.228-1" :scope "test"]
                  [pandeiro/boot-http "0.7.3" :scope "test"]
                  [adzerk/boot-reload "0.4.12" :scope "test"]
@@ -14,7 +14,7 @@
                  [weasel "0.7.0" :scope "test"]
                  [org.clojure/tools.nrepl "0.2.12" :scope "test"]]
 
-  :checkouts '[[readux "0.1.4-SNAPSHOT"]]
+  :checkouts '[[readux "0.1.5-SNAPSHOT"]]
   :project 'readux-todo-example
   :version "0.1.1-SNAPSHOT")
 

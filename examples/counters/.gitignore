@@ -1,0 +1,16 @@
+target/**/*
+out/**/*
+.nrepl*
+project.clj
+*.iml
+pom.xml*
+*jar
+/lib/
+/classes/
+.lein-deps-sum
+.lein-repl-history
+
+examples/*/target/**/*
+examples/*/out/**/*
+examples/*/.nrepl*
+examples/*/project.clj

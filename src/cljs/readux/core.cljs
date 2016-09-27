@@ -1,6 +1,9 @@
 (ns readux.core
-  (:require [reagent.core :as r]
-            [readux.store :as rds])
+  (:require [cljs.spec :as s]
+            [reagent.core :as r]
+            [readux.store :as rds]
+            [readux.utils :as rdu]
+            [readux.spec :as spec])
   (:require-macros [reagent.ratom :refer [reaction]]))
 
 ;; Helpers
@@ -24,6 +27,9 @@
   (ns-abs :baz :foo) => :baz/foo
   (ns-abs :baz :bar/foo => :bar/foo"
   [ns kw]
+  {:pre [(spec/kw-or-str? ns)
+         (spec/kw-or-str? kw)]
+   :post [#(spec/kw? %1)]}
   (if (-> kw namespace nil?)
     (keyword (name ns) (name kw))
     kw))
@@ -31,12 +37,15 @@
 ;; ----
 (defn dispatch
   ([store action]
-   (assert
-     (rds/fsa-action? action)
-     "actions must be FSA-compliant (https://github.com/acdlite/flux-standard-action)")
+   {:pre
+    [(spec/action? action)]}
    ((@store :dispatch) store action))
   ([store type payload]
-   (assert (keyword? type) "Expect action type to be a keyword value")
+   {:pre
+    [(rdu/spec-valid?
+       :readux.action/type type "Expect action type to be a keyword value")
+     (rdu/spec-valid? :readux.action/payload payload)]}
+   #_(assert (keyword? type) "Expect action type to be a keyword value")
    (dispatch store {:type type :payload payload})))
 
 (defn store
@@ -46,7 +55,31 @@
      (dispatch store {:type :readux/init})
      store)))
 
-(defn composite-reducer
+(defn reducer
+  "Construct reducer from one (or more) action maps.
+
+  Action maps are maps whose key is the action type and whose value is a
+  function taking two arguments, 'model' and 'action', outputting the model
+  which results from processing the action.
+  I.e.
+  ---
+  {:incr (fn [model action] (update model :value inc))
+   :decr (fn [model action] (update model :value dec))}
+  ---
+
+  NOTE: If several action maps are supplied, they are merged in-order."
+  [init action-map & action-maps]
+  {:pre [(s/valid? :readux/action-map action-map)
+         (-> (s/nilable (s/coll-of :readux/action-map))
+             (s/valid? action-maps))]}
+  (let [action-map (reduce merge action-map action-maps)]
+    (fn [model action]
+      (let [model (or model init)]
+        (if-let [handler (->> action :type (get action-map))]
+          (handler model action)
+          model)))))
+
+(defn- fn-map->reducer*
   "Creates a reducer from a map of key -> reducer entries.
 
   Arguments:
@@ -69,41 +102,70 @@
 
   Given that each reducer returns a result model, the final model is then
   re-assembled from the results of the reducers."
-  [reducer-map]
-  (fn [model action]
-    (->> (for [[path reducer] reducer-map]
-           [path (reducer (get model path) action)])
-         (into {}))))
-
-(defn reducer
-  "Construct reducer from one (or more) action maps.
-
-  Action maps are maps whose key is the action type and whose value is a
-  function taking two arguments, 'model' and 'action', outputting the model
-  which results from processing the action.
-  I.e.
-  ---
-  {:incr (fn [model action] (update model :value inc))
-   :decr (fn [model action] (update model :value dec))}
-  ---
-
-  NOTE: If several action maps are supplied, they are merged in-order."
-  [init & action-maps]
-  (let [action-map (reduce merge action-maps)]
+  [action-map]
+  {:pre [(spec/action-map? action-map)]}
+  (let [action-map (into (sorted-map) action-map)]
     (fn [model action]
-      (let [model (or model init)]
-        (if-let [handler (->> action :type (get action-map))]
-          (handler model action)
-          model)))))
+      (->> (for [[path reducer] action-map]
+             [path (reducer (get model path) action)])
+           ;; don't convert into sorted-map - we don't want people relying on
+           ;; the structure of the output map. Only dispatch order is guaranteed
+           (into {})))))
+
+(defn with-ctx
+  "Modify (relative) actions in action map to use supplied context ns."
+  [ctx-ns action-map & action-maps]
+  {:pre [(spec/kw? ctx-ns)
+         (spec/action-map? action-map)
+         (spec/nil-or-action-maps? action-maps)]}
+  (let [action-map (reduce merge action-map action-maps)]
+    (reduce-kv
+      (fn [m k v]
+        (assoc m (ns-abs ctx-ns k) v))
+      {} action-map)))
+
+;; should produce a sorted map
+(defn- composite-reducer*
+  [rmap]
+  (let [visit-node
+        (fn [[tag val]]
+          (case tag
+            :fn val
+            :action-map (fn-map->reducer* val)
+            :reducer-entry
+            (let [{:keys [init actions ctx]} val
+                  ctx-fn (if ctx (partial with-ctx ctx) identity)]
+              (->> (ctx-fn actions)
+                   (reducer init)))
+            :reducer-map
+            (composite-reducer* val)))]
+    (-> (fn [m k node] (assoc m k (visit-node node)))
+        (reduce-kv (sorted-map) rmap)
+        (fn-map->reducer*))))
+
+(defn composite-reducer
+  [reducer-map & reducer-maps]
+  (let [rmap (->> (reduce merge reducer-map reducer-maps)
+                  (s/conform :readux/reducer-map))]
+    (when (= rmap :cljs.spec/invalid)
+      (rdu/error "Invalid input received"
+                 (->> (reduce merge reducer-map reducer-maps)
+                      (s/explain :readux/reducer-map))))
+    (composite-reducer* rmap)))
 
 (defn query-reg!
   [store query-id query-fn]
-  (assert (keyword? query-id))
+  {:pre [(spec/store*? store)
+         (spec/kw? query-id)
+         (spec/fun? query-fn)]}
   (-> (rds/store->queries store)
-      (swap! update query-id query-reg!* query-fn query-id)))
+      (swap! update query-id query-reg!* query-fn query-id))
+  nil)
 
 (defn queries-reg!
   [store query-map]
+  {:pre [(spec/store*? store)
+         (spec/query-map? query-map)]}
   (doseq [[id qfn] query-map]
     (query-reg! store id qfn)))
 
@@ -111,6 +173,8 @@
   ([store query-rq]
    (query store query-rq nil))
   ([store [query-id :as query-rq] path]
+   {:pre [(spec/store*? store)
+          (spec/kw? query-id)]}
    (assert (keyword? query-id) "Query key must always be a keyword")
    (assert (some? #(% path)) "path must be nil or a vector")
    (let [query-fn (-> store rds/store->queries deref (get query-id))]
@@ -118,15 +182,6 @@
      (-> (if path (reaction (get-in @(rds/store->model store) path))
                   (-> store rds/store->model))
          (query-fn query-rq)))))
-
-;; ---- contextualising components
-(defn with-ctx
-  "Modify (relative) actions in action map to use supplied context ns."
-  [ctx-ns & action-maps]
-  (reduce-kv
-    (fn [m k v]
-      (assoc m (ns-abs ctx-ns k) v))
-    {} (reduce merge action-maps)))
 
 (defn- ctx-dispatch
   "Yield dispatch function supporting contextual dispatches.
@@ -143,6 +198,8 @@
         '(dispatch {:type :some-ns/foo})', are treated as global and pass
         through unmodified."
   [store ns]
+  {:pre [(spec/store*? store)
+         (spec/kw-or-str? ns)]}
   (fn [action]
     (->> (if (-> action :type namespace nil?)
            (update action :type #(ns-abs ns %))
@@ -166,6 +223,7 @@
         '(query [:some-ns/counter-value])' are treated as operating in the
         global context - that is, on the entire state tree."
   [store path]
+  {:pre [(spec/store*? store)]}
   (fn [[query-id :as query-rq]]
     (if (-> query-id namespace nil?)
       (query store query-rq path)
@@ -191,12 +249,14 @@
   Likewise, multiple controller components can interoperate on the same slice
   of the state tree by (connect)'ing them to the same context."
   ([component store]
+   {:pre [(spec/store*? store)]}
    (partial component
             (partial dispatch store)
             (partial query store)))
   ([component store ns]
    (connect component store ns nil))
   ([component store ns path]
+   {:pre [(spec/store*? store)]}
    (let [dispatch (ctx-dispatch store ns)
          query (ctx-query store path)]
      (partial component dispatch query))))

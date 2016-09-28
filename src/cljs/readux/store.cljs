@@ -78,22 +78,28 @@
   {:pre [(spec/fun? dispatch)
          (spec/fun? next)
          (spec/action? action)]}
-  (let [{:keys [type payload]} action
+  (let [{:keys [type payload meta]} action
         action-name (str (when-let [ns (namespace type)]
                            (str ns "/"))
                          (name type))]
-    (rdu/log-group-collapsed
-      (str "* Action['"  action-name "']")
-      (when payload
-        (rdu/log-group
-          "Data"
-          (rdu/log (rdu/ppstr payload))))
-      (let [new-model (next model action)
-            [removed added _] (diff model new-model)]
-        (rdu/log-group
-          "Added"
-          (rdu/log (rdu/ppstr added)))
-        (rdu/log-group
-          "Removed"
-          (rdu/log (rdu/ppstr removed)))
-        new-model))))
+    (if (get-in meta [:log-model-diff :nolog])
+      ;; no logging for this action
+      (do (-> (str "%c* Action['"  action-name "'] -- logging skipped")
+              (rdu/log "color:blue; font-weight: bold"))
+          (next model action))
+      ;; log the action
+      (rdu/log-group-collapsed
+        (str "* Action['"  action-name "']")
+        (when payload
+          (rdu/log-group
+            "Data"
+            (rdu/log (rdu/ppstr payload))))
+        (let [new-model (next model action)
+              [removed added _] (diff model new-model)]
+          (rdu/log-group
+            "Added"
+            (rdu/log (rdu/ppstr added)))
+          (rdu/log-group
+            "Removed"
+            (rdu/log (rdu/ppstr removed)))
+          new-model)))))

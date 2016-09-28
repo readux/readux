@@ -78,16 +78,34 @@
                    :readux.store/queries
                    :readux.store/dispatch]))
 
+(defn- wrap-nilable
+  [spec nilable]
+  (if nilable (s/nilable spec) spec))
+
 ;; ----- Wrapped checks
 (defn kw?
-  [v]
-  (spec-valid? keyword? v "Expected a keyword value"))
+  ([v] (kw? v {}))
+  ([v {:keys [label nil?]}]
+   (spec-valid?
+     (wrap-nilable keyword? nil?)
+     v
+     (if label (str "expected '" label "' to be a keyword")
+               "expected a keyword value"))))
 
 (defn kw-or-str?
   [v]
   (spec-valid?
     (s/or :kw keyword? :str string?) v
     "Must be string/keyword"))
+
+(defn kw-coll?
+  ([v] (kw-coll? v {}))
+  ([v {:keys [label nil?]}]
+   (spec-valid?
+     (wrap-nilable (s/coll-of keyword?) nil?)
+     v
+     (if label (str "expected '" label "' to be a collection of keywords")
+               "expected a collection of keywords"))))
 
 (defn action?
   [v]

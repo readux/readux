@@ -1,37 +1,34 @@
 (ns readux.store
   (:require [clojure.data :refer [diff]]
             [reagent.core :as r]
-            [readux.utils :as rdu :include-macros true])
+            [readux.utils :as rdu :include-macros true]
+            [readux.spec :as spec])
   (:require-macros [reagent.ratom :refer [reaction]]))
-
-(def ^:private store-nil-msg "store argument was 'nil'")
-
-(defn fsa-action?
-  [action]
-  (and (map? action) ((complement nil?) (:type action))))
 
 (defn store->model*
   [store]
-  (assert (some? store) store-nil-msg)
+  {:pre [(spec/store*? store)]}
   (:model @store))
 
 (defn store->model
   [store]
-  (assert (some? store) store-nil-msg)
+  {:pre [(spec/store*? store)]}
   (:model-ro @store))
 
 (defn store->reducer
   [store]
-  (assert (some? store) store-nil-msg)
+  {:pre [(spec/store*? store)]}
   (:reducer @store))
 
 (defn store->queries
   [store]
-  (assert (some? store) store-nil-msg)
+  {:pre [(spec/store*? store)]}
   (-> @store :queries))
 
 (defn dispatch-core
   [store action]
+  {:pre [(spec/store*? store)
+         (spec/action? action)]}
   (let [model* (store->model* store)
         result ((store->reducer store) @model* action)]
     (assert (some? result) "Root reducer returned 'nil' - result of reduce *must* be some new (non-nil) state!")
@@ -40,6 +37,7 @@
 
 (defn ->store*
   [reducer]
+  {:pre [(spec/fun? reducer)]}
   (let [model (r/atom nil)]
     (atom {:model model
            :model-ro (reaction @model)
@@ -49,13 +47,13 @@
 
 (defn- mw-dispatcher
   [store]
+  {:pre [(spec/store*? store)]}
   (fn
     ([action]
-     (assert
-       (fsa-action? action)
-       "actions must be FSA-compliant (https://github.com/acdlite/flux-standard-action)")
+     {:pre [(spec/action? action)]}
      ((:dispatch @store) store action))
     ([type payload]
+     {:pre [(spec/kw? type)]}
      (assert
        (keyword? type) "expect action type to be a keyword value")
      ((:dispatch @store) {:type type :payload payload}))))
@@ -64,6 +62,7 @@
   [& middleware]
   (fn do-apply-mw
     [store]
+    {:pre [(spec/store*? store)]}
     (let [dispatch-fn (mw-dispatcher store)
           reducer (store->reducer store)]
       (->> middleware
@@ -76,6 +75,9 @@
 (defn log-model-diff
   "Store middleware to log model changes to console."
   [dispatch next model action]
+  {:pre [(spec/fun? dispatch)
+         (spec/fun? next)
+         (spec/action? action)]}
   (let [{:keys [type payload]} action
         action-name (str (when-let [ns (namespace type)]
                            (str ns "/"))

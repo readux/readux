@@ -174,9 +174,8 @@
    (query store query-rq nil))
   ([store [query-id :as query-rq] path]
    {:pre [(spec/store*? store)
-          (spec/kw? query-id)]}
-   (assert (keyword? query-id) "Query key must always be a keyword")
-   (assert (some? #(% path)) "path must be nil or a vector")
+          (spec/kw? query-id)
+          (spec/kw-coll? path {:label "path" :nil? true})]}
    (let [query-fn (-> store rds/store->queries deref (get query-id))]
      (assert (some? query-fn) (str "Query '" query-id "' is not registered with the store."))
      (-> (if path (reaction (get-in @(rds/store->model store) path))
@@ -223,7 +222,8 @@
         '(query [:some-ns/counter-value])' are treated as operating in the
         global context - that is, on the entire state tree."
   [store path]
-  {:pre [(spec/store*? store)]}
+  {:pre [(spec/store*? store)
+         (spec/kw-coll? path {:label "path" :nil? true})]}
   (fn [[query-id :as query-rq]]
     (if (-> query-id namespace nil?)
       (query store query-rq path)
@@ -256,7 +256,8 @@
   ([component store ns]
    (connect component store ns nil))
   ([component store ns path]
-   {:pre [(spec/store*? store)]}
+   {:pre [(spec/store*? store)
+          (spec/kw-coll? path {:label "path" :nil? true})]}
    (let [dispatch (ctx-dispatch store ns)
          query (ctx-query store path)]
      (partial component dispatch query))))

@@ -25,6 +25,19 @@
   {:pre [(spec/store*? store)]}
   (-> @store :queries))
 
+(defn dispatch*
+  ([store action]
+   {:pre
+    [(spec/action? action)]}
+   ((@store :dispatch) store action))
+  ([store type payload]
+   {:pre
+    [(rdu/spec-valid?
+       :readux.action/type type "Expect action type to be a keyword value")
+     (rdu/spec-valid? :readux.action/payload payload)]}
+   (dispatch* store {:type type :payload payload})))
+
+;; default end-of-chain dispatch fn
 (defn dispatch-core
   [store action]
   {:pre [(spec/store*? store)
@@ -45,25 +58,12 @@
            :queries (r/atom {})
            :dispatch dispatch-core})))
 
-(defn- mw-dispatcher
-  [store]
-  {:pre [(spec/store*? store)]}
-  (fn
-    ([action]
-     {:pre [(spec/action? action)]}
-     ((:dispatch @store) store action))
-    ([type payload]
-     {:pre [(spec/kw? type)]}
-     (assert
-       (keyword? type) "expect action type to be a keyword value")
-     ((:dispatch @store) {:type type :payload payload}))))
-
 (defn apply-mw
   [& middleware]
   (fn do-apply-mw
     [store]
     {:pre [(spec/store*? store)]}
-    (let [dispatch-fn (mw-dispatcher store)
+    (let [dispatch-fn (partial dispatch* store)
           reducer (store->reducer store)]
       (->> middleware
            reverse

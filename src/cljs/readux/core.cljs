@@ -35,18 +35,7 @@
     kw))
 
 ;; ----
-(defn dispatch
-  ([store action]
-   {:pre
-    [(spec/action? action)]}
-   ((@store :dispatch) store action))
-  ([store type payload]
-   {:pre
-    [(rdu/spec-valid?
-       :readux.action/type type "Expect action type to be a keyword value")
-     (rdu/spec-valid? :readux.action/payload payload)]}
-   #_(assert (keyword? type) "Expect action type to be a keyword value")
-   (dispatch store {:type type :payload payload})))
+(def dispatch rds/dispatch*)
 
 (defn store
   ([reducer] (store reducer identity))

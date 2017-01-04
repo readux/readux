@@ -8,3 +8,4 @@ examples/*/out/**/*
 examples/*/.nrepl*
 examples/*/project.clj
 *.iml
+.DS_Store

@@ -1,7 +1,7 @@
 (ns todo.core
   (:require [reagent.core :as r]
             [reagent.ratom :refer [reaction]]
-            [readux.core :as rdc :include-macros true]
+            [readux.core :as rdc]
             [readux.store :as rds]))
 
 (enable-console-print!)

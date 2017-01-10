@@ -9,8 +9,8 @@
 ;; Reducers
 ;; --------
 (def todo-actions
-  (rdc/actions
-    {:add-todo
+  {:add-todo
+   (fn [model action]
      (let [text (:payload action)
            next-id (:next-todo-id model)]
        (if (not-empty text)
@@ -20,19 +20,20 @@
                                 :text      text
                                 :completed false}))
              (update :next-todo-id inc))
-         model))
-     :toggle-todo
+         model)))
+   :toggle-todo
+   (fn [model action]
      (let [todo-id (:payload action)]
        (->> #(map (fn [todo]
                     (if (= (:id todo) todo-id)
                       (update todo :completed not)
                       todo)) %1)
-            (update model :todos)))}))
+            (update model :todos))))})
 
 (def filter-actions
-  (rdc/actions
-    {:set-visibility-filter
-     (:payload action)}))
+  {:set-visibility-filter
+   (fn [model action]
+     (:payload action))})
 
 (def app-reducer
   (rdc/composite-reducer

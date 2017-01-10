@@ -10,7 +10,7 @@
                  [weasel "0.7.0" :scope "test"]
                  [org.clojure/tools.nrepl "0.2.12" :scope "test"]
                  [reagent "0.6.0"]
-                 [readux "0.1.5-SNAPSHOT"]]
+                 [readux "0.1.7-SNAPSHOT"]]
   ;; use if this project should automatically rebuild when some other
   ;; project is changed...
   ;;:checkouts '[[foo-lib "0.1.0-SNAPSHOT"]]

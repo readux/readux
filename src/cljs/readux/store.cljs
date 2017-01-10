@@ -6,16 +6,22 @@
   (:require-macros [reagent.ratom :refer [reaction]]))
 
 (defn store->model*
+  "(R/W access) Get model atom from store.
+
+  NOTE: you should *not* access this outside of
+        core Readux code."
   [store]
   {:pre [(spec/store*? store)]}
   (:model @store))
 
 (defn store->model
+  "(R/O access) Get reaction encompassing the entire model."
   [store]
   {:pre [(spec/store*? store)]}
   (:model-ro @store))
 
 (defn store->reducer
+  "Get the store's top-level reducer function."
   [store]
   {:pre [(spec/store*? store)]}
   (:reducer @store))
@@ -49,6 +55,9 @@
     nil))
 
 (defn ->store*
+  "Create new store using the supplied reducer function.
+
+  reducer - function to act as the store's top-level reducer."
   [reducer]
   {:pre [(spec/fun? reducer)]}
   (let [model (r/atom nil)]

@@ -33,8 +33,8 @@
   ([store type payload]
    {:pre
     [(rdu/spec-valid?
-       :readux.action/type type "Expect action type to be a keyword value")
-     (rdu/spec-valid? :readux.action/payload payload)]}
+       ::spec/action.type type "Expect action type to be a keyword value")
+     (rdu/spec-valid? ::spec/action.payload payload)]}
    (dispatch* store {:type type :payload payload})))
 
 ;; default end-of-chain dispatch fn
